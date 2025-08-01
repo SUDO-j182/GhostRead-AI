@@ -1,7 +1,7 @@
 exports.handler = async (event) => {
   try {
     const { text } = JSON.parse(event.body);
-    console.log("Input text:", text);
+    console.log("📥 Input text:", text);
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -25,10 +25,14 @@ exports.handler = async (event) => {
     });
 
     const data = await response.json();
-    console.log("OpenAI response:", JSON.stringify(data, null, 2));
 
-    if (!response.ok) {
-      console.error("API call failed:", response.status, data);
+    // 🧠 Extended Logging for Debug
+    console.log("📡 Status Code:", response.status);
+    console.log("📋 Response Headers:", [...response.headers.entries()]);
+    console.log("📦 Full API Response:", JSON.stringify(data, null, 2));
+
+    if (data.error) {
+      console.error("❌ OpenAI Error Object:", JSON.stringify(data.error, null, 2));
     }
 
     return {
@@ -37,15 +41,12 @@ exports.handler = async (event) => {
         reply: data.choices?.[0]?.message?.content || "No response."
       })
     };
+
   } catch (err) {
-    console.error("Function error:", err);
+    console.error("🔥 Function error (outer catch):", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ reply: "Server error. Please try again." })
     };
   }
 };
-
-  
-  
-  
