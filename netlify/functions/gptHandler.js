@@ -26,27 +26,36 @@ exports.handler = async (event) => {
 
     const data = await response.json();
 
-    // 🧠 Extended Logging for Debug
     console.log("📡 Status Code:", response.status);
     console.log("📋 Response Headers:", [...response.headers.entries()]);
     console.log("📦 Full API Response:", JSON.stringify(data, null, 2));
 
-    if (data.error) {
-      console.error("❌ OpenAI Error Object:", JSON.stringify(data.error, null, 2));
+    // Fallback logic: handle quota exhaustion or API errors gracefully
+    if (data.error?.code === "insufficient_quota") {
+      console.warn("⚠️ OpenAI quota exceeded.");
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          reply: "🔋 GPT is currently out of juice (API quota reached). Try again soon or wait for a top-up."
+        })
+      };
     }
 
+    // Return GPT reply or fallback
     return {
       statusCode: 200,
       body: JSON.stringify({
-        reply: data.choices?.[0]?.message?.content || "No response."
+        reply: data.choices?.[0]?.message?.content || "🤖 GPT didn’t return a valid reply."
       })
     };
 
   } catch (err) {
-    console.error("🔥 Function error (outer catch):", err);
+    console.error("🔥 Function error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ reply: "Server error. Please try again." })
+      body: JSON.stringify({
+        reply: "💥 Server error. Try again later or report this bug to the dev."
+      })
     };
   }
 };
