@@ -1,12 +1,35 @@
 exports.handler = async (event) => {
   try {
+    // Parse input
     const { text } = JSON.parse(event.body);
-    console.log("📥 Input text:", text);
+
+    // ✅ Validate input
+    if (typeof text !== "string" || text.trim().length === 0 || text.length > 4000) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ reply: "❌ Invalid or oversized input." })
+      };
+    }
+
+    // ✅ Sanitize invisible/invalid characters
+    if (/[\u0000-\u001F\u007F]/.test(text)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ reply: "❌ Input contains control characters." })
+      };
+    }
+
+    // ✅ Optional debug logging flag
+    const DEBUG = process.env.DEBUG_MODE === "true";
+
+    if (DEBUG) {
+      console.log("📥 Input text:", text);
+    }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -26,13 +49,15 @@ exports.handler = async (event) => {
 
     const data = await response.json();
 
-    console.log("📡 Status Code:", response.status);
-    console.log("📋 Response Headers:", [...response.headers.entries()]);
-    console.log("📦 Full API Response:", JSON.stringify(data, null, 2));
+    // ✅ Log status only if debugging
+    if (DEBUG) {
+      console.log("📡 Status Code:", response.status);
+      console.log("📋 Response Headers:", [...response.headers.entries()]);
+      console.log("📦 Full API Response:", JSON.stringify(data, null, 2));
+    }
 
-    // Fallback logic: handle quota exhaustion or API errors gracefully
+    // ✅ Handle quota exhaustion or known API errors
     if (data.error?.code === "insufficient_quota") {
-      console.warn("⚠️ OpenAI quota exceeded.");
       return {
         statusCode: 200,
         body: JSON.stringify({
@@ -41,16 +66,26 @@ exports.handler = async (event) => {
       };
     }
 
-    // Return GPT reply or fallback
+    if (!data.choices?.[0]?.message?.content) {
+      return {
+        statusCode: 502,
+        body: JSON.stringify({
+          reply: "🤖 GPT didn’t return a valid reply."
+        })
+      };
+    }
+
+    // ✅ Return clean reply
     return {
       statusCode: 200,
       body: JSON.stringify({
-        reply: data.choices?.[0]?.message?.content || "🤖 GPT didn’t return a valid reply."
+        reply: data.choices[0].message.content
       })
     };
 
   } catch (err) {
     console.error("🔥 Function error:", err);
+
     return {
       statusCode: 500,
       body: JSON.stringify({
@@ -59,3 +94,4 @@ exports.handler = async (event) => {
     };
   }
 };
+
