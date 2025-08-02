@@ -84,8 +84,7 @@ Then deploy using Netlify CLI or your preferred host.
 ## ✨ Credits
 
 Built by **Jai Drakulic**  
-Frontend, backend, and GPT integration completed in under 6 hours.  
-Pixel-perfect favicon and UI by Jai’s own custom editor.
+Frontend, backend, and GPT integration.
 
 ---
 
