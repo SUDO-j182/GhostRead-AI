@@ -2,8 +2,24 @@ const chatInput = document.getElementById("chat-input");
 const analyseBtn = document.getElementById("analyse-btn");
 const resultDiv = document.getElementById("result");
 
+// Optional: display free use counter
+const usageDisplay = document.getElementById("usage-remaining");
+
+// FREE USAGE TRACKING
+const MAX_FREE_USES = 5;
+let usageCount = parseInt(localStorage.getItem("ghostread-usage") || "0");
+let isPaid = localStorage.getItem("ghostread-paid") === "true";
+
+updateUsageDisplay();
+
 analyseBtn.addEventListener("click", () => {
   const userInput = chatInput.value.trim();
+
+  // FREE USE LIMIT CHECK
+  if (!isPaid && usageCount >= MAX_FREE_USES) {
+    resultDiv.textContent = "🚫 You've reached your free usage limit.\nClick 'Upgrade' to unlock unlimited access.";
+    return;
+  }
 
   // Basic input sanitation
   if (!userInput) {
@@ -40,18 +56,36 @@ async function callGPT(userText) {
 
     if (typeof data.reply === "string") {
       resultDiv.textContent = data.reply;
+
+      // Increment usage if free tier
+      if (!isPaid) {
+        usageCount++;
+        localStorage.setItem("ghostread-usage", usageCount.toString());
+        updateUsageDisplay();
+      }
+
     } else {
       resultDiv.textContent = "Unexpected response format.";
     }
 
   } catch (error) {
-    // Optional: You could remove this in production or gate it by DEBUG flag
     console.error("Error calling GPT function:", error);
     resultDiv.textContent = "Something went wrong. Try again later.";
   } finally {
-    analyseBtn.disabled = false; // Re-enable after request
+    analyseBtn.disabled = false;
   }
 }
+
+function updateUsageDisplay() {
+  if (!usageDisplay) return;
+  if (isPaid) {
+    usageDisplay.textContent = "✅ Unlimited Access";
+  } else {
+    const remaining = Math.max(0, MAX_FREE_USES - usageCount);
+    usageDisplay.textContent = `🕓 Free Uses Left: ${remaining}`;
+  }
+}
+
 
 
   
